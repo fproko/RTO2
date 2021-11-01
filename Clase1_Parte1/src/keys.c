@@ -1,7 +1,7 @@
 /*=============================================================================
  * Fernando Prokopiuk <fernandoprokopiuk@gmail.com>
- * Date: 2021/10/29
- * Version: v1.0
+ * Date: 2021/11/01
+ * Version: v1.1
  *===========================================================================*/
 
 /*==================[ Inclusions ]============================================*/
@@ -21,7 +21,8 @@ const t_key_config  keys_config[] = { TEC1, TEC2 };
 /*=====[Definition macros of private constants]==============================*/
 #define DEBOUNCE_TIME   40
 #define DEBOUNCE_TIME_MS pdMS_TO_TICKS(DEBOUNCE_TIME)
-#define MSG_KEY_SIZE 10
+#define MSG_KEY         "TEC%1d T%04d"
+#define MSG_KEY_SIZE    sizeof("TECx Tyyyy")  //sizeof(MSG_KEY) nos daria 7
 /*=====[Prototypes (declarations) of private functions]======================*/
 
 static void keys_ButtonError( uint32_t index );
@@ -171,17 +172,12 @@ static void buttonReleased( uint32_t index )
 
     if ( keys_data[index].time_diff > 0 )
     {
-        char msg_key[MSG_KEY_SIZE];
-        sprintf(msg_key, "TEC%1d T%04d", index+1, keys_data[index].time_diff);
-
-        taskENTER_CRITICAL();   
-        char *pKEY = pvPortMalloc(sizeof(char)*MSG_KEY_SIZE);
-        taskEXIT_CRITICAL();
+        char *pKEY = pvPortMalloc(MSG_KEY_SIZE); //Reservo espacio de memoria
 
         if (pKEY != NULL)
         {
-            memcpy(pKEY, msg_key, MSG_KEY_SIZE);
-            xQueueSend(queue_print, &pKEY, portMAX_DELAY);
+            snprintf(pKEY, MSG_KEY_SIZE, MSG_KEY, index+1, keys_data[index].time_diff); //Armo el mensaje y lo copio en pKEY
+            xQueueSend(queue_print, &pKEY, portMAX_DELAY);  //Se utiliza & para pasar una copia de la dirección.
         }
         else
         {

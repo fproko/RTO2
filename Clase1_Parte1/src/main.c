@@ -1,7 +1,7 @@
 /*=============================================================================
  * Fernando Prokopiuk <fernandoprokopiuk@gmail.com>
- * Date: 2021/10/29
- * Version: v1.0
+ * Date: 2021/11/01
+ * Version: v1.1
  *===========================================================================*/
 
 /*==================[inclusiones]============================================*/
@@ -26,7 +26,9 @@
 #define LED_ERROR LEDR
 #define N_QUEUE 	10
 
-#define MSG_LED_SIZE    7
+#define MSG_LED         "LED ON"
+#define MSG_LED_SIZE    sizeof(MSG_LED)
+
 #define MALLOC_FAILED "Malloc Failed\n"
 /*==================[definiciones de datos internos]=========================*/
 const gpioMap_t leds_t[] = {LEDB};
@@ -130,21 +132,18 @@ void tarea_A( void* taskParmPtr )
     TickType_t xPeriodicity = LED_RATE; // Tarea periodica cada 1000 ms
     TickType_t xLastWakeTime = xTaskGetTickCount();
     char *pLED = NULL;
-    const char msg_led[] = "LED ON";
     // ---------- REPETIR POR SIEMPRE --------------------------
     while( TRUE )
     {
         gpioWrite( LEDB, ON );
         gpioWrite( GPIO7, ON );
 
-        taskENTER_CRITICAL();
-        pLED = pvPortMalloc(sizeof(char)*MSG_LED_SIZE);
-        taskEXIT_CRITICAL();
+        pLED = pvPortMalloc(MSG_LED_SIZE);
 
         if (pLED != NULL)
         {
-            memcpy(pLED, msg_led, MSG_LED_SIZE);
-            xQueueSend(queue_print, &pLED, portMAX_DELAY);
+            memcpy(pLED, MSG_LED, MSG_LED_SIZE);
+            xQueueSend(queue_print, &pLED, portMAX_DELAY); //Se utiliza & para pasar una copia de la dirección.
         }
         else
         {
@@ -167,10 +166,10 @@ void tarea_C( void* taskParmPtr )
     {
         xQueueReceive(queue_print, &msg, portMAX_DELAY); // Esperamos dato para imprimir
         printf("%s\r\n", msg);
-        
-        taskENTER_CRITICAL();
-        vPortFree(msg);
-        taskEXIT_CRITICAL();
+
+        vPortFree(msg); //Libero memoria
+
+        msg = NULL;
     }
 }
 
